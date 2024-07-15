@@ -4,8 +4,10 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import logging
 
-from calendar_event import event_factory
-
+if __name__ == "__main__":
+    from calendar_event import event_factory
+else:
+    from Calendar.calendar_event import event_factory
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
@@ -20,7 +22,6 @@ class GoogleCalendarEventAdder:
         self.config = self.load_config(config_file)
         self.calendar_id = self.config['calendar_id']
         self.credentials_file = self.config['credentials_file']
-        self.timezone = self.config['timezone']
         self.credentials = self.load_credentials(self.credentials_file)
         self.service = self.build_service(self.credentials)
 
@@ -66,11 +67,11 @@ class GoogleCalendarEventAdder:
         logging.info("Google Calendar service built successfully")
         return service
     
-    def create_events(self,summary,start,end,color):
+    def create_events(self,event_title,start,end=None,color=None):
         '''
         Exposes ability to create events
         '''
-        return event_factory(summary,
+        return event_factory(event_title,
                                 start,
                                 end,
                                 color)
@@ -91,7 +92,7 @@ class GoogleCalendarEventAdder:
                 created_event = event.to_google_format()
 
                 # Insert the event into the calendar
-                created_event = self.service.events().insert(calendarId=self.calendar_id, body=event).execute()
+                created_event = self.service.events().insert(calendarId=self.calendar_id, body=created_event).execute()
                 logging.info(f"Event created: {created_event.get('htmlLink')}")
                 logging.info(f"Event details: {created_event}")
                 created_events.append(created_event)

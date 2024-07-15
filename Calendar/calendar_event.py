@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
 import json
 
-CONFIG_FILE = '../secrets.json'
+
+CONFIG_FILE = '/mnt/c/Users/mille/Desktop/HomeGenie/Calendar/event_settings.json'
 
 def event_factory(summary,start,end=None,color=None):
     return CalendarEvent(summary,start,end,color)
@@ -18,8 +19,8 @@ class CalendarEvent:
         color_id (str, optional): Color ID for the event.
         """
         self.summary = summary
-        self.start_datetime = start_datetime
-        self.end_datetime = end_datetime if end_datetime else start_datetime + timedelta(hours=1)
+        self.start_datetime = datetime.strptime(start_datetime, "%Y-%m-%dT%H:%M:%S")
+        self.end_datetime = datetime.strptime(end_datetime,"%Y-%m-%dT%H:%M:%S") if end_datetime else self.start_datetime + timedelta(hours=1)
         self.color_id = color_id
         with open(CONFIG_FILE, 'r') as f:
             config = json.load(f)
@@ -73,6 +74,23 @@ class CalendarEvent:
         Returns:
         dict: A dictionary representing the event in Google Calendar format.
         """
+        google_calendar_colors = {
+            "Pale Blue":1,
+            "Pale Green":2,
+            "Mauve":3,
+            "Pale Red":4,
+            "Yellow":5,
+            "Orange":6,
+            "Cyan":7,
+            "Gray":8,
+            "Blue":9,
+            "Green":10,
+            "Red":11
+          }
+        if self.color_id and type(self.color_id) == str:
+            self.color_id = google_calendar_colors.get(self.color_id,None)
+
+
         event = {
             'summary': self.summary,
             'start': {

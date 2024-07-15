@@ -2,7 +2,7 @@ from time import sleep
 from openai import OpenAI
 from datetime import date
 import json
-
+import pdb
 from Calendar import EventAdder
 CONFIG_FILE = 'secrets.json'
 
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     genie = HomeGenie(CONFIG_FILE)
     #TODO: This should go in a thread manager class that manages threads by ID
     thread = genie.client.beta.threads.create()
-    extra_context = f"The current date is {date.today()}\n\n"
+    extra_context = f"The current date is {date.today().weekday()} {date.today()}\n\n"
     run = genie.client.beta.threads.runs.create(
             thread_id = thread.id,
             assistant_id = genie.assistant_id,
@@ -55,12 +55,13 @@ if __name__ == '__main__':
     
     tool_calls = run.required_action.submit_tool_outputs.tool_calls
     required_calls = []
-    for tool_call in toolcalls:
+    for tool_call in tool_calls:
         required_calls.append(genie.get_required_functions(tool_call))
 
     #Create calendar events
-    EventAdder=EventAdder(CONFIG_FILE)
+    EventAdder=EventAdder.GoogleCalendarEventAdder(CONFIG_FILE)
     events = []
+    pdb.set_trace()
     for call in required_calls:
         if call["name"] == "schedule_event":
             args = call['arguments']
