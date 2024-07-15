@@ -8,8 +8,9 @@ if __name__ == "__main__":
     from calendar_event import event_factory
 else:
     from Calendar.calendar_event import event_factory
+
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
 
 class GoogleCalendarEventAdder:
     def __init__(self, config_file):
