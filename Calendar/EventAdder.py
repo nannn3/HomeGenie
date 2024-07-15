@@ -4,7 +4,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import logging
 
-from calendar_event import CalendarEvent
+from calendar_event import event_factory
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -65,6 +65,15 @@ class GoogleCalendarEventAdder:
         service = build('calendar', 'v3', credentials=credentials)
         logging.info("Google Calendar service built successfully")
         return service
+    
+    def create_events(self,summary,start,end,color):
+        '''
+        Exposes ability to create events
+        '''
+        return event_factory(summary,
+                                start,
+                                end,
+                                color)
 
     def add_events_to_calendar(self, events):
         """
@@ -77,6 +86,7 @@ class GoogleCalendarEventAdder:
         None
         """
         try:
+            created_events=[]
             for event in events:
                 created_event = event.to_google_format()
 
@@ -84,6 +94,9 @@ class GoogleCalendarEventAdder:
                 created_event = self.service.events().insert(calendarId=self.calendar_id, body=event).execute()
                 logging.info(f"Event created: {created_event.get('htmlLink')}")
                 logging.info(f"Event details: {created_event}")
+                created_events.append(created_event)
+
+            return created_events
 
         except Exception as e:
             logging.error(f"An error occurred: {e}")
@@ -91,17 +104,19 @@ class GoogleCalendarEventAdder:
 # Example usage
 if __name__ == "__main__":
     # Initialize the event adder with the configuration file
-    config_file = 'secrets.json'
+    config_file = '../secrets.json'
     event_adder = GoogleCalendarEventAdder(config_file)
 
     # Example event data
     events = [
-        CalendarEvent(
+        event_factory(
             summary='Meeting with Team',
-            start_datetime=datetime(2024, 7, 10, 9, 0),
-            end_datetime=datetime(2024, 7, 10, 10, 0),
-            color_id='1'
+            start=datetime(2024, 7, 10, 9, 0),
+            end=datetime(2024, 7, 10, 10, 0),
+            color='1'
         )   
     ]
+    print(events[0])
+    exit()
     # Add events to Google Calendar
     event_adder.add_events_to_calendar(events)

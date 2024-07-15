@@ -1,7 +1,10 @@
 from datetime import datetime, timedelta
 import json
 
-CONFIG_FILE = 'secrets.json'
+CONFIG_FILE = '../secrets.json'
+
+def event_factory(summary,start,end=None,color=None):
+    return CalendarEvent(summary,start,end,color)
 
 class CalendarEvent:
     def __init__(self, summary, start_datetime, end_datetime=None, color_id=None):
@@ -21,6 +24,8 @@ class CalendarEvent:
         with open(CONFIG_FILE, 'r') as f:
             config = json.load(f)
             self.timezone = config['timezone']
+    def __str__(self):
+        return (f"CalendarEvent {self.summary}, starting at {self.start_datetime}, ending at {self.end_datetime}")
 
     # Getter and Setter for summary
     @property
