@@ -127,7 +127,8 @@ class HomeGenie:
             assistant_id=genie.assistant_id,
             instructions=extra_context + "Schedule a doctor's appointment on August 1st at 9AM"
         )
-
+            
+        #TODO Use async polling
         while True:  # Poll for completion or required actions:
             run = genie.retrieve_run_status(
                 thread_id=thread.id,
@@ -137,6 +138,9 @@ class HomeGenie:
             sleep(SLEEP_DELAY)
             if run.status != "in_progress" and run.status != 'queued':
                 break
+
+        #TODO: This is only required if there is actually a required action and the prompt doesn't go straight to completed. 
+        # Creating tool calls might have to be done in the thread manager
 
         tool_calls = run.required_action.submit_tool_outputs.tool_calls
         required_calls = [genie.get_required_functions(tool_call) for tool_call in tool_calls]
