@@ -81,7 +81,8 @@ class HomeGenie:
             run_id=run_id
         )
 
-    def create_calendar_events(self, calls):
+
+    def schedule_event(self,call):
         """
         Create calendar events based on the required tool calls.
 
@@ -92,13 +93,17 @@ class HomeGenie:
             list: A list of added events.
         """
         event_adder = EventAdder.GoogleCalendarEventAdder(CONFIG_FILE)
-        created_events =[]
-        for call in calls:
-            assert(call.name == "schedule_event") # This should be the only name that calls this function
-            args = call.arguments
-            added = event_adder.add_events_to_calendar([event_adder.create_event(**args)])
-            created_events.append(added)
-        return created_events
+        args = call.arguments
+        event = event_adder.create_event(**args)
+        result = str(event_adder.add_events_to_calendar([event]))
+        call.result = result
+        return call
+        
+    def get_tool_calls(self,run):
+        '''
+        gets a list of function calls required by a run
+        '''
+        return run.required_action.submit_tool_outputs.tool_calls
     
     def parse_tool_calls(self,tool_calls):
         '''
@@ -110,7 +115,12 @@ class HomeGenie:
         '''
         return [tool_call.tool_call_factory(call) for call in tool_calls]
 
-        
+    def run_functions(self,function_calls):
+        for call in function_calls:
+            if call.name == 'schedule_event':
+                call = self.schedule_event(call)
+        return function_calls
+
     def main(self):
         """
         Main function to run the HomeGenie assistant.
@@ -138,24 +148,21 @@ class HomeGenie:
         #TODO: This is only required if there is actually a required action and the prompt doesn't go straight to completed. 
         # Creating tool calls might have to be done in the thread manager
         print(run.status)
-        tool_calls = run.required_action.submit_tool_outputs.tool_calls
         pdb.set_trace()
+        tool_calls = genie.get_tool_calls(run)
         function_calls = genie.parse_tool_calls(tool_calls)
         # Create calendar events
-        added_events = genie.create_calendar_events(required_calls)
-        tool_outputs = []
-        for event,call in zip(added_events,required_calls):
-            output = f'Event {event["summary"]} was added to the calendar on {event["start"]["dateTime"]}'
-            print(output)
-            tool_outputs.append({"tool_call_id":call['tool_call_id'],"output":output})
-            
-        if added_events:
+        calls = genie.run_functions(function_calls)
+        for call in calls:
+            if call.result is None:
+                break # Do nothing if we have no results
+            pdb.set_trace()
             run = genie.client.beta.threads.runs.submit_tool_outputs(
                     thread_id = thread.id,
                     run_id = run.id,
-                    tool_outputs = tool_outputs
+                    tool_outputs = call.result
                     )
-
+            # TODO USE async here. It's fine for now since I'm the only user though
             while genie.retrieve_run_status(
                     thread_id = thread.id,
                     run_id = run.id).status != 'completed':

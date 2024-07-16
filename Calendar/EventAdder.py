@@ -68,7 +68,7 @@ class GoogleCalendarEventAdder:
         logging.info("Google Calendar service built successfully")
         return service
     
-    def create_events(self,event_title,start,end=None,color=None):
+    def create_event(self,event_title,start,end=None,color=None):
         '''
         Exposes ability to create events
         '''
