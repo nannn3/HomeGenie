@@ -2,9 +2,9 @@ from time import sleep
 from openai import OpenAI
 from datetime import date
 import json
-
+import pdb
 from Calendar import EventAdder
-
+from ThreadManager import tool_call
 CONFIG_FILE = 'secrets.json'
 SLEEP_DELAY = 5
 
@@ -14,7 +14,7 @@ class HomeGenie:
         Initialize the HomeGenie class.
 
         Args:
-            config_file (str): Path to the configuration file.
+           config_file (str): Path to the configuration file.
         """
         self.config = self.load_config(config_file)
         self.client = OpenAI(api_key=self.config["openAI_API_key"])
@@ -37,20 +37,6 @@ class HomeGenie:
             config = json.load(f)
             return config
 
-    def get_required_functions(self, tool_call):
-        """
-        Extract the required functions from a tool call.
-
-        Args:
-            tool_call: The tool call object.
-
-        Returns:
-            dict: A dictionary containing tool call ID, name, and arguments.
-        """
-        arguments = json.loads(tool_call.function.arguments)
-        name = tool_call.function.name
-        tool_call_id = tool_call.id
-        return {"tool_call_id": tool_call_id, 'name': name, 'arguments': arguments}
 
     def create_thread(self):
         """
@@ -95,26 +81,36 @@ class HomeGenie:
             run_id=run_id
         )
 
-    def create_calendar_events(self, required_calls):
+    def create_calendar_events(self, calls):
         """
         Create calendar events based on the required tool calls.
 
         Args:
-            required_calls (list): A list of required tool calls.
+            required_calls (list): A list of tool_calls.
 
         Returns:
             list: A list of added events.
         """
         event_adder = EventAdder.GoogleCalendarEventAdder(CONFIG_FILE)
-        events = []
-        for call in required_calls:
-            if call["name"] == "schedule_event":
-                args = call['arguments']
-                events.append(event_adder.create_events(**args))
-        if len(events) != 0:
-            return event_adder.add_events_to_calendar(events)
-        return []
+        created_events =[]
+        for call in calls:
+            assert(call.name == "schedule_event") # This should be the only name that calls this function
+            args = call.arguments
+            added = event_adder.add_events_to_calendar([event_adder.create_event(**args)])
+            created_events.append(added)
+        return created_events
+    
+    def parse_tool_calls(self,tool_calls):
+        '''
+        converts openai's toolcalls into custom ones that have important info easily exposed
+        Args:
+            tools_calls : (list of openAI tool_calls
+        Returns: 
+            The same list as custom tool_calls
+        '''
+        return [tool_call.tool_call_factory(call) for call in tool_calls]
 
+        
     def main(self):
         """
         Main function to run the HomeGenie assistant.
@@ -141,9 +137,10 @@ class HomeGenie:
 
         #TODO: This is only required if there is actually a required action and the prompt doesn't go straight to completed. 
         # Creating tool calls might have to be done in the thread manager
-
+        print(run.status)
         tool_calls = run.required_action.submit_tool_outputs.tool_calls
-        required_calls = [genie.get_required_functions(tool_call) for tool_call in tool_calls]
+        pdb.set_trace()
+        function_calls = genie.parse_tool_calls(tool_calls)
         # Create calendar events
         added_events = genie.create_calendar_events(required_calls)
         tool_outputs = []
